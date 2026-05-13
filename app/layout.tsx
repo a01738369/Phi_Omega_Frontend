@@ -1,30 +1,25 @@
-import { Geist, Geist_Mono, IBM_Plex_Sans } from "next/font/google"
+import type { Metadata } from "next";
+import "./globals.css";
+import { Sidebar } from "@/components/layout/sidebar";
 
-import "./globals.css"
-import { ThemeProvider } from "@/components/theme-provider"
-import { cn } from "@/lib/utils";
-
-const ibmPlexSans = IBM_Plex_Sans({subsets:['latin'],variable:'--font-sans'})
-
-const fontMono = Geist_Mono({
-  subsets: ["latin"],
-  variable: "--font-mono",
-})
+export const metadata: Metadata = {
+  title: "Phi Omega — Dashboard",
+  description: "Panel de control de operaciones y logística",
+};
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode
-}>) {
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <html
-      lang="en"
-      suppressHydrationWarning
-      className={cn("antialiased", fontMono.variable, "font-sans", ibmPlexSans.variable)}
-    >
-      <body>
-        <ThemeProvider>{children}</ThemeProvider>
+    <html lang="es" suppressHydrationWarning>
+      <body className="flex h-screen overflow-hidden bg-muted/20 antialiased">
+        <Sidebar />
+        <main className="flex-1 overflow-y-auto">
+          <div className="p-6 min-h-full">{children}</div>
+        </main>
       </body>
     </html>
-  )
+  );
 }

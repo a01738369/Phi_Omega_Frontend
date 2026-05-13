@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&display=swap');
+
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
@@ -80,6 +82,18 @@
     --sidebar-accent-foreground: oklch(0.205 0 0);
     --sidebar-border: oklch(0.922 0 0);
     --sidebar-ring: oklch(0.708 0 0);
+}
+
+/* ============================================
+   ESTILOS GLOBALES DASHBOARD PHI OMEGA
+   ============================================ */
+
+body {
+  font-family: 'DM Sans', sans-serif;
+}
+
+code, .font-mono {
+  font-family: 'DM Mono', monospace;
 }
 
 .dark {
