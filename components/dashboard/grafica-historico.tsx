@@ -12,7 +12,6 @@ import {
 } from "recharts";
 import { HISTORICO } from "@/lib/mock-data";
 
-// Tooltip personalizado en español
 function TooltipPersonalizado({ active, payload, label }: any) {
   if (active && payload && payload.length) {
     return (
@@ -20,10 +19,7 @@ function TooltipPersonalizado({ active, payload, label }: any) {
         <p className="font-semibold mb-1">{label}</p>
         {payload.map((p: any) => (
           <div key={p.name} className="flex items-center gap-2">
-            <div
-              className="w-2 h-2 rounded-full"
-              style={{ backgroundColor: p.color }}
-            />
+            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: p.color }} />
             <span className="text-muted-foreground">
               {p.name === "ordenes" ? "Órdenes" : "Utilidad"}:
             </span>
@@ -50,23 +46,13 @@ export function GraficaHistorico() {
       <CardContent>
         <ResponsiveContainer width="100%" height={260}>
           <LineChart data={HISTORICO} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" className="stroke-border" opacity={0.5} />
-            <XAxis
-              dataKey="mes"
-              tick={{ fontSize: 12 }}
-              className="text-muted-foreground"
-            />
-            <YAxis
-              yAxisId="izq"
-              tick={{ fontSize: 12 }}
-              className="text-muted-foreground"
-              width={35}
-            />
+            <CartesianGrid strokeDasharray="3 3" opacity={0.4} />
+            <XAxis dataKey="mes" tick={{ fontSize: 12 }} />
+            <YAxis yAxisId="izq" tick={{ fontSize: 12 }} width={35} />
             <YAxis
               yAxisId="der"
               orientation="right"
               tick={{ fontSize: 12 }}
-              className="text-muted-foreground"
               width={60}
               tickFormatter={(v) => `$${(v / 1000).toFixed(0)}K`}
             />
@@ -76,22 +62,24 @@ export function GraficaHistorico() {
                 value === "ordenes" ? "Órdenes" : "Utilidad MXN"
               }
             />
+            {/* Morado VAX para órdenes */}
             <Line
               yAxisId="izq"
               type="monotone"
               dataKey="ordenes"
-              stroke="#3b82f6"
+              stroke="#523d72"
               strokeWidth={2.5}
-              dot={{ r: 3, fill: "#3b82f6" }}
+              dot={{ r: 3, fill: "#523d72" }}
               activeDot={{ r: 5 }}
             />
+            {/* Amarillo VAX para utilidad */}
             <Line
               yAxisId="der"
               type="monotone"
               dataKey="utilidad"
-              stroke="#10b981"
+              stroke="#f6cc54"
               strokeWidth={2.5}
-              dot={{ r: 3, fill: "#10b981" }}
+              dot={{ r: 3, fill: "#f6cc54" }}
               activeDot={{ r: 5 }}
             />
           </LineChart>

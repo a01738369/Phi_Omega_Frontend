@@ -146,3 +146,14 @@ export interface NuevoShipment {
   fecha_fin: Date | undefined;
   precio: number;
 }
+
+// ============================================
+// TIPO NUEVO — Para registrar nuevos lugares
+// desde el modal de agregar shipment
+// ============================================
+
+export interface NuevoLugar {
+  ciudad: string;
+  estado: string;
+  pais: string;
+}

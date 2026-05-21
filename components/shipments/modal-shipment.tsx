@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -29,15 +29,27 @@ import {
   IconTrendingUp,
   IconCurrencyPeso,
   IconCheck,
+  IconMapPin,
+  IconPlus,
 } from "@tabler/icons-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { CLIENTES, USUARIOS, LUGARES } from "@/lib/mock-data";
+import { CLIENTES, USUARIOS, getLugares, agregarLugar } from "@/lib/mock-data";
+import type { Lugar } from "@/lib/types";
 
 interface ModalShipmentProps {
   abierto: boolean;
   onCerrar: () => void;
 }
+
+// Mini-formulario para agregar un lugar nuevo
+interface FormNuevoLugar {
+  ciudad: string;
+  estado: string;
+  pais: string;
+}
+
+const LUGAR_VACIO: FormNuevoLugar = { ciudad: "", estado: "", pais: "" };
 
 export function ModalShipment({ abierto, onCerrar }: ModalShipmentProps) {
   const [idCliente, setIdCliente] = useState("");
@@ -51,13 +63,44 @@ export function ModalShipment({ abierto, onCerrar }: ModalShipmentProps) {
   const [calculando, setCalculando] = useState(false);
   const [confirmado, setConfirmado] = useState(false);
 
-  // Simula el llamado al modelo ML
+  // Estado para el panel de "Nuevo lugar"
+  const [mostrarNuevoOrigen, setMostrarNuevoOrigen] = useState(false);
+  const [mostrarNuevoDestino, setMostrarNuevoDestino] = useState(false);
+  const [formNuevoOrigen, setFormNuevoOrigen] = useState<FormNuevoLugar>(LUGAR_VACIO);
+  const [formNuevoDestino, setFormNuevoDestino] = useState<FormNuevoLugar>(LUGAR_VACIO);
+
+  // Lista de lugares reactiva (se actualiza cuando se agrega uno nuevo)
+  const [lugares, setLugares] = useState<Lugar[]>(getLugares());
+
+  // Cada vez que se abre el modal, sincroniza la lista de lugares
+  useEffect(() => {
+    if (abierto) setLugares(getLugares());
+  }, [abierto]);
+
+  // Guardar nuevo origen
+  function guardarNuevoOrigen() {
+    if (!formNuevoOrigen.ciudad || !formNuevoOrigen.estado || !formNuevoOrigen.pais) return;
+    const nuevo = agregarLugar(formNuevoOrigen);
+    setLugares(getLugares()); // actualiza la lista local
+    setOrigen(nuevo.id_lugares); // selecciona automáticamente el nuevo lugar
+    setMostrarNuevoOrigen(false);
+    setFormNuevoOrigen(LUGAR_VACIO);
+  }
+
+  // Guardar nuevo destino
+  function guardarNuevoDestino() {
+    if (!formNuevoDestino.ciudad || !formNuevoDestino.estado || !formNuevoDestino.pais) return;
+    const nuevo = agregarLugar(formNuevoDestino);
+    setLugares(getLugares());
+    setDestino(nuevo.id_lugares);
+    setMostrarNuevoDestino(false);
+    setFormNuevoDestino(LUGAR_VACIO);
+  }
+
   async function calcularPrediccion() {
     if (!origen || !destino) return;
     setCalculando(true);
-    // Simulamos delay del modelo ML
     await new Promise((r) => setTimeout(r, 1200));
-    // Precio simulado basado en ruta
     const base = 22000;
     const extra = Math.floor(Math.random() * 45000);
     setPrecioPredecho(base + extra);
@@ -66,11 +109,13 @@ export function ModalShipment({ abierto, onCerrar }: ModalShipmentProps) {
 
   function handleConfirmar() {
     const precio = precioManual ? Number(precioManual) : precioPredecho;
-    console.log("✅ Nuevo Shipment creado:", {
+    const origenNombre = lugares.find((l) => l.id_lugares === origen);
+    const destinoNombre = lugares.find((l) => l.id_lugares === destino);
+    console.log("✅ Nuevo envío creado:", {
       id_cliente: idCliente,
       sales_rep: salesRep,
-      id_origen: origen,
-      id_destino: destino,
+      origen: origenNombre ? `${origenNombre.ciudad}, ${origenNombre.estado}` : origen,
+      destino: destinoNombre ? `${destinoNombre.ciudad}, ${destinoNombre.estado}` : destino,
       fecha_inicio: fechaInicio,
       fecha_fin: fechaFin,
       precio,
@@ -84,14 +129,11 @@ export function ModalShipment({ abierto, onCerrar }: ModalShipmentProps) {
   }
 
   function resetear() {
-    setIdCliente("");
-    setSalesRep("");
-    setOrigen("");
-    setDestino("");
-    setFechaInicio(undefined);
-    setFechaFin(undefined);
-    setPrecioPredecho(null);
-    setPrecioManual("");
+    setIdCliente(""); setSalesRep(""); setOrigen(""); setDestino("");
+    setFechaInicio(undefined); setFechaFin(undefined);
+    setPrecioPredecho(null); setPrecioManual("");
+    setMostrarNuevoOrigen(false); setMostrarNuevoDestino(false);
+    setFormNuevoOrigen(LUGAR_VACIO); setFormNuevoDestino(LUGAR_VACIO);
   }
 
   const puedeConfirmar =
@@ -102,57 +144,43 @@ export function ModalShipment({ abierto, onCerrar }: ModalShipmentProps) {
     <Dialog open={abierto} onOpenChange={(open) => { if (!open) { resetear(); onCerrar(); } }}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Agregar Nuevo Shipment</DialogTitle>
+          <DialogTitle>Nuevo Envío</DialogTitle>
           <DialogDescription>
-            Completa los datos del envío. El precio puede ser calculado por el modelo o ingresado manualmente.
+            Completa los datos. Si el origen o destino no existe, puedes agregarlo desde los mismos selectores.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-5 py-2">
-          {/* Sección 1: Cliente y Sales Rep */}
+
+          {/* ── Asignación ── */}
           <div>
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
               Asignación
             </p>
             <div className="grid grid-cols-2 gap-3">
-              {/* Cliente */}
               <div className="space-y-1.5">
                 <label className="text-sm font-medium">Cliente</label>
                 <Select value={idCliente} onValueChange={setIdCliente}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar cliente..." />
-                  </SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="Seleccionar cliente..." /></SelectTrigger>
                   <SelectContent>
                     {CLIENTES.map((c) => (
-                      <SelectItem key={c.id_cliente} value={c.id_cliente}>
-                        {c.Nombre}
-                      </SelectItem>
+                      <SelectItem key={c.id_cliente} value={c.id_cliente}>{c.Nombre}</SelectItem>
                     ))}
                     <Separator className="my-1" />
-                    <SelectItem value="NUEVO">
-                      + Agregar nuevo cliente
-                    </SelectItem>
+                    <SelectItem value="NUEVO_CLIENTE">+ Agregar nuevo cliente</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-
-              {/* Sales Rep */}
               <div className="space-y-1.5">
                 <label className="text-sm font-medium">Sales Rep</label>
                 <Select value={salesRep} onValueChange={setSalesRep}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar rep..." />
-                  </SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="Seleccionar rep..." /></SelectTrigger>
                   <SelectContent>
                     {USUARIOS.filter((u) => u.cargo === "Sales Rep").map((u) => (
-                      <SelectItem key={u.id_usuarios} value={u.id_usuarios}>
-                        {u.Nombre}
-                      </SelectItem>
+                      <SelectItem key={u.id_usuarios} value={u.id_usuarios}>{u.Nombre}</SelectItem>
                     ))}
                     <Separator className="my-1" />
-                    <SelectItem value="NUEVO">
-                      + Agregar nuevo sales rep
-                    </SelectItem>
+                    <SelectItem value="NUEVO_REP">+ Agregar nuevo sales rep</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -161,96 +189,192 @@ export function ModalShipment({ abierto, onCerrar }: ModalShipmentProps) {
 
           <Separator />
 
-          {/* Sección 2: Ruta */}
+          {/* ── Ruta ── */}
           <div>
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
               Ruta
             </p>
             <div className="grid grid-cols-2 gap-3">
-              {/* Origen */}
+
+              {/* ORIGEN */}
               <div className="space-y-1.5">
                 <label className="text-sm font-medium">Origen</label>
-                <Select value={origen} onValueChange={setOrigen}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Ciudad de origen..." />
-                  </SelectTrigger>
+                <Select
+                  value={origen}
+                  onValueChange={(val) => {
+                    if (val === "NUEVO_ORIGEN") {
+                      setMostrarNuevoOrigen(true);
+                      setOrigen("");
+                    } else {
+                      setOrigen(val);
+                      setMostrarNuevoOrigen(false);
+                    }
+                  }}
+                >
+                  <SelectTrigger><SelectValue placeholder="Ciudad de origen..." /></SelectTrigger>
                   <SelectContent>
-                    {LUGARES.map((l) => (
+                    {lugares.map((l) => (
                       <SelectItem key={l.id_lugares} value={l.id_lugares}>
                         {l.ciudad}, {l.estado} — {l.pais}
                       </SelectItem>
                     ))}
+                    <Separator className="my-1" />
+                    <SelectItem value="NUEVO_ORIGEN">
+                      <span className="flex items-center gap-1">
+                        <IconMapPin size={13} /> + Registrar nuevo origen
+                      </span>
+                    </SelectItem>
                   </SelectContent>
                 </Select>
+
+                {/* Sub-formulario de nuevo origen */}
+                {mostrarNuevoOrigen && (
+                  <div className="mt-2 p-3 bg-muted/50 rounded-lg border space-y-2">
+                    <p className="text-xs font-semibold flex items-center gap-1">
+                      <IconPlus size={12} /> Registrar nuevo origen
+                    </p>
+                    <Input
+                      placeholder="Ciudad"
+                      value={formNuevoOrigen.ciudad}
+                      onChange={(e) => setFormNuevoOrigen((p) => ({ ...p, ciudad: e.target.value }))}
+                      className="h-8 text-sm"
+                    />
+                    <Input
+                      placeholder="Estado / Provincia"
+                      value={formNuevoOrigen.estado}
+                      onChange={(e) => setFormNuevoOrigen((p) => ({ ...p, estado: e.target.value }))}
+                      className="h-8 text-sm"
+                    />
+                    <Input
+                      placeholder="País"
+                      value={formNuevoOrigen.pais}
+                      onChange={(e) => setFormNuevoOrigen((p) => ({ ...p, pais: e.target.value }))}
+                      className="h-8 text-sm"
+                    />
+                    <div className="flex gap-2">
+                      <Button size="sm" className="h-7 text-xs" onClick={guardarNuevoOrigen}>
+                        Guardar origen
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 text-xs"
+                        onClick={() => { setMostrarNuevoOrigen(false); setFormNuevoOrigen(LUGAR_VACIO); }}
+                      >
+                        Cancelar
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* Destino */}
+              {/* DESTINO */}
               <div className="space-y-1.5">
                 <label className="text-sm font-medium">Destino</label>
-                <Select value={destino} onValueChange={setDestino}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Ciudad de destino..." />
-                  </SelectTrigger>
+                <Select
+                  value={destino}
+                  onValueChange={(val) => {
+                    if (val === "NUEVO_DESTINO") {
+                      setMostrarNuevoDestino(true);
+                      setDestino("");
+                    } else {
+                      setDestino(val);
+                      setMostrarNuevoDestino(false);
+                    }
+                  }}
+                >
+                  <SelectTrigger><SelectValue placeholder="Ciudad de destino..." /></SelectTrigger>
                   <SelectContent>
-                    {LUGARES.map((l) => (
+                    {lugares.map((l) => (
                       <SelectItem key={l.id_lugares} value={l.id_lugares}>
                         {l.ciudad}, {l.estado} — {l.pais}
                       </SelectItem>
                     ))}
+                    <Separator className="my-1" />
+                    <SelectItem value="NUEVO_DESTINO">
+                      <span className="flex items-center gap-1">
+                        <IconMapPin size={13} /> + Registrar nuevo destino
+                      </span>
+                    </SelectItem>
                   </SelectContent>
                 </Select>
+
+                {/* Sub-formulario de nuevo destino */}
+                {mostrarNuevoDestino && (
+                  <div className="mt-2 p-3 bg-muted/50 rounded-lg border space-y-2">
+                    <p className="text-xs font-semibold flex items-center gap-1">
+                      <IconPlus size={12} /> Registrar nuevo destino
+                    </p>
+                    <Input
+                      placeholder="Ciudad"
+                      value={formNuevoDestino.ciudad}
+                      onChange={(e) => setFormNuevoDestino((p) => ({ ...p, ciudad: e.target.value }))}
+                      className="h-8 text-sm"
+                    />
+                    <Input
+                      placeholder="Estado / Provincia"
+                      value={formNuevoDestino.estado}
+                      onChange={(e) => setFormNuevoDestino((p) => ({ ...p, estado: e.target.value }))}
+                      className="h-8 text-sm"
+                    />
+                    <Input
+                      placeholder="País"
+                      value={formNuevoDestino.pais}
+                      onChange={(e) => setFormNuevoDestino((p) => ({ ...p, pais: e.target.value }))}
+                      className="h-8 text-sm"
+                    />
+                    <div className="flex gap-2">
+                      <Button size="sm" className="h-7 text-xs" onClick={guardarNuevoDestino}>
+                        Guardar destino
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 text-xs"
+                        onClick={() => { setMostrarNuevoDestino(false); setFormNuevoDestino(LUGAR_VACIO); }}
+                      >
+                        Cancelar
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
 
           <Separator />
 
-          {/* Sección 3: Fechas */}
+          {/* ── Fechas ── */}
           <div>
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
               Fechas
             </p>
             <div className="grid grid-cols-2 gap-3">
-              {/* Fecha Inicio */}
               <div className="space-y-1.5">
                 <label className="text-sm font-medium">Fecha de Inicio</label>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start text-left font-normal"
-                    >
+                    <Button variant="outline" className="w-full justify-start font-normal">
                       <IconCalendar size={15} className="mr-2 text-muted-foreground" />
                       {fechaInicio
                         ? format(fechaInicio, "PPP", { locale: es })
-                        : <span className="text-muted-foreground">Seleccionar fecha...</span>}
+                        : <span className="text-muted-foreground">Seleccionar...</span>}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={fechaInicio}
-                      onSelect={setFechaInicio}
-                      locale={es}
-                      initialFocus
-                    />
+                    <Calendar mode="single" selected={fechaInicio} onSelect={setFechaInicio} locale={es} initialFocus />
                   </PopoverContent>
                 </Popover>
               </div>
-
-              {/* Fecha Fin */}
               <div className="space-y-1.5">
                 <label className="text-sm font-medium">Fecha de Entrega</label>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start text-left font-normal"
-                    >
+                    <Button variant="outline" className="w-full justify-start font-normal">
                       <IconCalendar size={15} className="mr-2 text-muted-foreground" />
                       {fechaFin
                         ? format(fechaFin, "PPP", { locale: es })
-                        : <span className="text-muted-foreground">Seleccionar fecha...</span>}
+                        : <span className="text-muted-foreground">Seleccionar...</span>}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
@@ -259,9 +383,7 @@ export function ModalShipment({ abierto, onCerrar }: ModalShipmentProps) {
                       selected={fechaFin}
                       onSelect={setFechaFin}
                       locale={es}
-                      disabled={(date) =>
-                        fechaInicio ? date < fechaInicio : false
-                      }
+                      disabled={(date) => fechaInicio ? date < fechaInicio : false}
                       initialFocus
                     />
                   </PopoverContent>
@@ -272,13 +394,12 @@ export function ModalShipment({ abierto, onCerrar }: ModalShipmentProps) {
 
           <Separator />
 
-          {/* Sección 4: Precio / ML */}
+          {/* ── Precio / ML ── */}
           <div>
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
               Precio
             </p>
             <div className="space-y-3">
-              {/* Botón de predicción */}
               <Button
                 variant="secondary"
                 size="sm"
@@ -290,40 +411,38 @@ export function ModalShipment({ abierto, onCerrar }: ModalShipmentProps) {
                 {calculando ? "Calculando..." : "Calcular predicción ML"}
               </Button>
 
-              {!origen || !destino ? (
+              {(!origen || !destino) && (
                 <p className="text-xs text-muted-foreground">
                   Selecciona origen y destino para habilitar la predicción
                 </p>
-              ) : null}
+              )}
 
-              {/* Resultado predicción */}
               {precioPredecho !== null && (
-                <div className="flex items-center gap-4 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900 rounded-lg p-4">
-                  <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center shrink-0">
-                    <IconCurrencyPeso size={20} className="text-green-600" />
+                <div className="flex items-center gap-4 rounded-lg p-4 border"
+                  style={{ background: "rgba(82,61,114,0.08)", borderColor: "rgba(82,61,114,0.2)" }}>
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
+                    style={{ background: "rgba(82,61,114,0.15)" }}>
+                    <IconCurrencyPeso size={20} style={{ color: "#523d72" }} />
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Precio sugerido por el modelo</p>
-                    <p className="text-2xl font-bold text-green-600">
+                    <p className="text-2xl font-bold" style={{ color: "#523d72" }}>
                       ${precioPredecho.toLocaleString("es-MX")} MXN
                     </p>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      Basado en ruta, fechas y clientes registrados
+                      Basado en ruta, fechas y datos históricos
                     </p>
                   </div>
                 </div>
               )}
 
-              {/* Campo de precio manual */}
               <div className="space-y-1.5">
                 <label className="text-sm font-medium">
                   Precio manual{" "}
-                  <span className="text-muted-foreground font-normal">(opcional — sobreescribe la predicción)</span>
+                  <span className="text-muted-foreground font-normal">(sobreescribe la predicción)</span>
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
-                    $
-                  </span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                   <Input
                     type="number"
                     placeholder="0.00"
@@ -347,12 +466,9 @@ export function ModalShipment({ abierto, onCerrar }: ModalShipmentProps) {
             className="gap-2 min-w-36"
           >
             {confirmado ? (
-              <>
-                <IconCheck size={15} />
-                ¡Agregado!
-              </>
+              <><IconCheck size={15} /> ¡Guardado!</>
             ) : (
-              "Confirmar Shipment"
+              "Confirmar Envío"
             )}
           </Button>
         </DialogFooter>

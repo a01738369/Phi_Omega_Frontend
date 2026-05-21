@@ -143,3 +143,29 @@ export const COLOR_ESTATUS: Record<number, string> = {
   5: "bg-red-100 text-red-800 border-red-200",
   6: "bg-gray-100 text-gray-800 border-gray-200",
 };
+
+// ============================================
+// STORE REACTIVO DE LUGARES
+// Permite agregar nuevos lugares desde el modal
+// y que aparezcan en los selects inmediatamente.
+// Cuando haya backend, esto se reemplaza por
+// llamadas a la API.
+// ============================================
+
+// Copia mutable que actúa como "base de datos en memoria"
+let lugaresStore: Lugar[] = [...LUGARES];
+
+export function getLugares(): Lugar[] {
+  return lugaresStore;
+}
+
+export function agregarLugar(nuevo: { ciudad: string; estado: string; pais: string }): Lugar {
+  const id = `LUG${String(lugaresStore.length + 1).padStart(3, "0")}`;
+  const lugar: Lugar = { id_lugares: id, ...nuevo };
+  lugaresStore = [...lugaresStore, lugar];
+  return lugar;
+}
+
+export function resetLugares() {
+  lugaresStore = [...LUGARES];
+}
