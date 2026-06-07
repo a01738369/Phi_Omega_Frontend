@@ -81,7 +81,7 @@ export function KpiCard({
             )}
             <span>
               {variacion !== undefined
-                ? `${Math.abs(variacion)}% vs mes anterior`
+                ? `${Math.abs(variacion)}% vs periodo anterior`
                 : ""}
             </span>
           </div>

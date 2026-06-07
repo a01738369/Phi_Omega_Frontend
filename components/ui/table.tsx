@@ -29,14 +29,23 @@ function TableHeader({ className, ...props }: React.ComponentProps<"thead">) {
   )
 }
 
-function TableBody({ className, ...props }: React.ComponentProps<"tbody">) {
+function TableBody({ className, children, ...props }: React.ComponentProps<"tbody"> & { children?: React.ReactNode }) {
+  const processedChildren = React.Children.map(children, (child, idx) => {
+    if (React.isValidElement(child) && child.key == null) {
+      return React.cloneElement(child, { key: `table-row-${idx}` });
+    }
+    return child;
+  });
+
   return (
     <tbody
       data-slot="table-body"
       className={cn("[&_tr:last-child]:border-0", className)}
       {...props}
-    />
-  )
+    >
+      {processedChildren}
+    </tbody>
+  );
 }
 
 function TableFooter({ className, ...props }: React.ComponentProps<"tfoot">) {

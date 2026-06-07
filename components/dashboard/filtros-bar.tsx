@@ -7,7 +7,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { IconFilter, IconX } from "@tabler/icons-react";
+import { IconFilter, IconX, IconCalendar } from "@tabler/icons-react";
+import { subDays, subYears, differenceInDays, isSameDay } from "date-fns";
 import { CLIENTES, ESTATUS_LISTA, USUARIOS } from "@/lib/mock-data";
 import type { FiltrosGlobales } from "@/lib/types";
 
@@ -23,11 +24,53 @@ interface FiltrosBarProps {
 export function FiltrosBar({ filtros, onCambiar, onLimpiar }: FiltrosBarProps) {
   const hayFiltros = Object.values(filtros).some((v) => v !== undefined);
 
+  // determine selected period from fechas
+  const now = new Date();
+  const end = filtros.fechaFin ?? now;
+  const start = filtros.fechaInicio;
+
+  const selectedPeriod = (() => {
+    if (!start) return undefined;
+    const days = differenceInDays(end, start);
+    if (days === 6) return "7d"; // inclusive range: today and 6 days before
+    if (days === 29) return "30d";
+    if (days === 89) return "90d";
+    // year approximation: check year difference or 365 days
+    const yearDiff = end.getFullYear() - start.getFullYear();
+    if (yearDiff >= 1 || differenceInDays(end, start) >= 365) return "1y";
+    return undefined;
+  })();
+
+  const applyPeriod = (p: "7d" | "30d" | "90d" | "1y") => {
+    const now = new Date();
+    let from: Date;
+    if (p === "1y") from = subYears(now, 1);
+    else if (p === "90d") from = subDays(now, 89);
+    else if (p === "30d") from = subDays(now, 29);
+    else from = subDays(now, 6);
+    onCambiar("fechaInicio", from);
+    onCambiar("fechaFin", now);
+  };
+
   return (
     <div className="flex flex-wrap gap-2 items-center bg-card border rounded-xl px-4 py-3 mb-6 shadow-sm">
-      <div className="flex items-center gap-2 text-muted-foreground mr-1">
+      <div className="flex items-center gap-3 text-muted-foreground mr-2">
         <IconFilter size={15} />
         <span className="text-sm font-medium">Filtros</span>
+        <div className="flex items-center gap-1 ml-2">
+          {(["7d", "30d", "90d", "1y"] as const).map((p) => (
+            <Button
+              key={p}
+              size="sm"
+              variant={selectedPeriod === p ? "default" : "ghost"}
+              onClick={() => applyPeriod(p)}
+              className="flex items-center gap-2 h-8 text-xs"
+            >
+              <IconCalendar size={14} />
+              <span className="font-medium">{p}</span>
+            </Button>
+          ))}
+        </div>
       </div>
 
       {/* Filtro Estatus */}
