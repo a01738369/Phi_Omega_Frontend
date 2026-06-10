@@ -35,12 +35,13 @@ export function TablaShipments() {
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState("");
   const [filtroEstatus, setFiltroEstatus] = useState("todos");
+  const [allStatusOptions, setAllStatusOptions] = useState<string[]>([]);
   const [page, setPage] = useState(0);
   const pageSize = 10;
 
   const cargar = (estatus: string) => {
     setLoading(true);
-    const statusParam = estatus === "todos" ? "all" : Number(estatus);
+    const statusParam = estatus === "todos" ? "all" : estatus;
     // debug log to help verify what we're sending
     if (process.env.NEXT_PUBLIC_API_DEBUG === "1") {
       // eslint-disable-next-line no-console
@@ -53,6 +54,16 @@ export function TablaShipments() {
           console.debug("shipments result count:", Array.isArray(res) ? res.length : typeof res);
         }
         setTodos(res);
+        // If we loaded the unfiltered list, extract the available status options
+        if (estatus === "todos") {
+          try {
+            const statuses = Array.from(new Set((res || []).map((r: any) => String(r.estatus || "")).filter(Boolean)));
+            statuses.sort((a,b) => a.localeCompare(b));
+            setAllStatusOptions(statuses);
+          } catch (e) {
+            setAllStatusOptions([]);
+          }
+        }
       })
       .finally(() => setLoading(false));
   };
@@ -61,12 +72,14 @@ export function TablaShipments() {
 
   const datos = todos.filter((s) => {
     const b = busqueda.toLowerCase();
-    return (
+    const matchesSearch = (
       s.id.toLowerCase().includes(b) ||
       s.cliente.toLowerCase().includes(b) ||
       s.origen.toLowerCase().includes(b) ||
       s.destino.toLowerCase().includes(b)
     );
+    const matchesStatus = filtroEstatus === "todos" ? true : ((s.estatus || "").toLowerCase() === filtroEstatus.toLowerCase());
+    return matchesSearch && matchesStatus;
   });
   const mostrado = datos.slice(page * pageSize, (page + 1) * pageSize);
   const totalPages = Math.max(1, Math.ceil(datos.length / pageSize));
@@ -99,8 +112,8 @@ export function TablaShipments() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Todos los estatus</SelectItem>
-              {ESTATUS_LISTA.map((e) => (
-                <SelectItem key={e.id_estatus} value={String(e.id_estatus)}>{e.estatus}</SelectItem>
+              {(allStatusOptions.length ? allStatusOptions : Array.from(new Set(todos.map(s => s.estatus || "")))).map((estatus) => (
+                <SelectItem key={estatus} value={estatus}>{estatus}</SelectItem>
               ))}
             </SelectContent>
           </Select>

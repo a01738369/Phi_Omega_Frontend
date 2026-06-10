@@ -217,4 +217,30 @@ export const operacionesApi = {
     utilidad_mxn: number;
     row_hash: string;
   }) => post<{ ok: boolean; row_hash: string }>("/operaciones/transactions", params),
+  createTicket: async (params: {
+    accesorials: number;
+    cliente: string;
+    carrier: string;
+    origin: string;
+    destination: string;
+    vehicle_type: string;
+    division: string;
+    creation_date: string;
+    delivery_date: string;
+    min_sale: number;
+    max_sale: number;
+    recommended_sale: number;
+  }) => {
+    const url = new URL(`${BASE_URL}/operaciones/ticket`);
+    Object.entries(params).forEach(([k, v]) => {
+      if (v !== undefined && v !== null) url.searchParams.set(k, String(v));
+    });
+    const res = await fetch(url.toString(), { method: "POST", cache: "no-store" });
+    if (!res.ok) throw new Error(`API error ${res.status}: /operaciones/ticket`);
+    const buffer = await res.arrayBuffer();
+    const cd = res.headers.get("content-disposition") || "";
+    const m = /filename=\"?([^\";]+)\"?/.exec(cd);
+    const filename = m ? m[1] : "ticket.pdf";
+    return { buffer, filename };
+  },
 };

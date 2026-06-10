@@ -57,6 +57,7 @@ export function ModalShipment({ abierto, onCerrar }: ModalShipmentProps) {
   const [guardando, setGuardando]   = useState(false);
   const [vehicleType, setVehicleType] = useState("");
   const [divisionField, setDivisionField] = useState("");
+  const [accesorials, setAccesorials] = useState<number>(0);
 
   const [mostrarNuevoOrigen, setMostrarNuevoOrigen]   = useState(false);
   const [mostrarNuevoDestino, setMostrarNuevoDestino] = useState(false);
@@ -241,6 +242,46 @@ export function ModalShipment({ abierto, onCerrar }: ModalShipmentProps) {
     }
   }
 
+  // Reset all modal fields to their initial state
+  function resetear() {
+    setIdCliente("");
+    setSalesRep("");
+    setOrigen("");
+    setDestino("");
+    setCarrier("");
+    setPredictedCarriers([]);
+    setPredictingCarrier(false);
+    setFechaInicio(undefined);
+    setFechaFin(undefined);
+    setPrediccion(null);
+    setPrecioManual("");
+    setCalculando(false);
+    setConfirmado(false);
+    setGuardando(false);
+    setVehicleType("");
+    setDivisionField("");
+    setAccesorials(0);
+    setMostrarNuevoOrigen(false);
+    setMostrarNuevoDestino(false);
+    setFormNuevoOrigen(LUGAR_VACIO);
+    setFormNuevoDestino(LUGAR_VACIO);
+    setMostrarNuevoCliente(false);
+    setNuevoClienteName("");
+    setMostrarNuevoRep(false);
+    setNuevoRepName("");
+    setNuevoRepMail("");
+    setMostrarNuevoLugar(false);
+    setFormNuevoLugar(LUGAR_VACIO);
+    setNuevoLugarTarget("origen");
+    setClienteQuery("");
+    setRepQuery("");
+    setOrigenQuery("");
+    setDestinoQuery("");
+    setCarrierQuery("");
+    setVehicleTypeQuery("");
+    setDivisionQuery("");
+  }
+
   async function predecirCarrier() {
     // require all fields except carrier: cliente, salesRep, origen, destino, fechaInicio, fechaFin
     // add debug logging to understand why this may be skipped or failing
@@ -313,7 +354,7 @@ export function ModalShipment({ abierto, onCerrar }: ModalShipmentProps) {
     setCalculando(true);
     try {
       const result = await operacionesApi.predecirVenta({
-        accesorials: 0,
+        accesorials: accesorials || 0,
         cliente: idCliente,
         carrier: carrier || "",
         name: "",
@@ -340,6 +381,7 @@ export function ModalShipment({ abierto, onCerrar }: ModalShipmentProps) {
       console.log("✅ Nuevo envío:", {
         cliente: idCliente, sales_rep: salesRep,
         origen, destino, fechaInicio, fechaFin,
+        accesorials,
         precio: precioManual ? Number(precioManual) : prediccion?.prediction,
       });
       setConfirmado(true);
@@ -347,16 +389,46 @@ export function ModalShipment({ abierto, onCerrar }: ModalShipmentProps) {
     } finally {
       setGuardando(false);
     }
-  }
+        const creationDate = fechaInicio ? format(fechaInicio, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd");
+        const deliveryDate = fechaFin ? format(fechaFin, "yyyy-MM-dd") : "";
+        const min_sale = prediccion?.low_prediction ?? 0;
+        const max_sale = prediccion?.high_prediction ?? 0;
+        const recommended_sale = precioManual ? Number(precioManual) : (prediccion?.prediction ?? 0);
 
-  function resetear() {
-    setIdCliente(""); setSalesRep(""); setOrigen(""); setDestino("");
-    setFechaInicio(undefined); setFechaFin(undefined);
-    setPrediccion(null); setPrecioManual("");
-    setMostrarNuevoOrigen(false); setMostrarNuevoDestino(false);
-    setFormNuevoOrigen(LUGAR_VACIO); setFormNuevoDestino(LUGAR_VACIO);
-    setVehicleType(""); setDivisionField("");
+        const resp = await operacionesApi.createTicket({
+          accesorials: accesorials || 0,
+          cliente: idCliente,
+          carrier: carrier || "",
+          origin: origen,
+          destination: destino,
+          vehicle_type: vehicleType || "",
+          division: divisionField || "",
+          creation_date: creationDate,
+          delivery_date: deliveryDate,
+          min_sale,
+          max_sale,
+          recommended_sale,
+        });
+
+        // Trigger download of PDF
+        try {
+          const blob = new Blob([resp.buffer], { type: "application/pdf" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = resp.filename || "ticket.pdf";
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+        } catch (err) {
+          console.error("Failed to download ticket", err);
+        }
+
+        setConfirmado(true);
+        setTimeout(() => { setConfirmado(false); resetear(); onCerrar(); }, 1500);
     setVehicleTypeQuery(""); setDivisionQuery("");
+    setAccesorials(0);
   }
 
   const puedeConfirmar =
@@ -668,6 +740,16 @@ export function ModalShipment({ abierto, onCerrar }: ModalShipmentProps) {
                   </Select>
                 </div>
               </div>
+              <div className="grid grid-cols-2 gap-2 mt-2">
+                <div>
+                  <label className="text-sm font-medium">Accesorios (accesorials)</label>
+                  <Input type="number" min={0} step={1} value={String(accesorials)} onChange={(e) => {
+                    const v = Number(e.target.value);
+                    setAccesorials(Number.isNaN(v) ? 0 : Math.max(0, Math.trunc(v)));
+                  }} className="h-8 text-sm" />
+                  <p className="text-xs text-muted-foreground">Introduce un entero (ej. 0)</p>
+                </div>
+              </div>
               <Button variant="secondary" size="sm" onClick={calcularPrediccion}
                 disabled={!origen || !destino || !fechaFin || calculando} className="gap-2">
                 <IconTrendingUp size={15} />
@@ -720,7 +802,7 @@ export function ModalShipment({ abierto, onCerrar }: ModalShipmentProps) {
           <Button variant="ghost" onClick={() => { resetear(); onCerrar(); }}>Cancelar</Button>
           <Button onClick={handleConfirmar} disabled={!puedeConfirmar || confirmado || guardando}
             className="gap-2 min-w-36">
-            {confirmado ? <><IconCheck size={15} /> ¡Guardado!</> : "Confirmar Envío"}
+            {confirmado ? <><IconCheck size={15} /> ¡Guardado!</> : (guardando ? "Generating..." : "Generate Ticket")}
           </Button>
         </DialogFooter>
       </DialogContent>
