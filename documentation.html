@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Documentación del repositorio Phi_Omega_Frontend</title>
+  <style>
+    body { font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 0; padding: 24px; color: #111827; background: #f8fafc; }
+    h1, h2, h3 { color: #111827; }
+    h1 { margin-bottom: 0.5rem; }
+    section { margin-bottom: 2rem; }
+    p { line-height: 1.75; margin: 0.8rem 0; }
+    ul { margin: 0.5rem 0 0.5rem 1.2rem; }
+    li { margin: 0.35rem 0; }
+    code { background: #e5e7eb; padding: 0.18rem 0.3rem; border-radius: 0.3rem; font-size: 0.95rem; }
+    .code-block { background: #e5e7eb; padding: 1rem; border-radius: 0.6rem; overflow-x: auto; }
+    .card { background: #ffffff; border: 1px solid #e5e7eb; border-radius: 1rem; padding: 1.5rem; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05); }
+    nav { position: sticky; top: 24px; padding: 1rem; border: 1px solid #e5e7eb; border-radius: 1rem; background: #ffffff; max-width: 280px; }
+    .layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 2rem; }
+    .layout-main { min-width: 0; }
+    a { color: #4f46e5; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <main class="layout-main">
+      <section class="card">
+        <h1>Documentación del repositorio</h1>
+        <p>Este proyecto es una aplicación <strong>Next.js</strong> tipo dashboard para <strong>VAX Solutions</strong>. Incluye un panel de métricas y una sección de gestión de envíos, clientes y representantes de ventas.</p>
+        <p>La app utiliza datos de backend mediante <code>lib/api.ts</code>, y provee componentes reutilizables con Radix UI y Tailwind CSS.</p>
+      </section>
+
+      <section class="card">
+        <h2>1. Estructura general</h2>
+        <ul>
+          <li><strong>app/</strong>: páginas de Next.js.</li>
+          <li><strong>components/</strong>: componentes UI y módulos de dashboard / envíos.</li>
+          <li><strong>hooks/</strong>: hooks personalizados.</li>
+          <li><strong>lib/</strong>: cliente de API, tipos y datos de prueba.</li>
+          <li><strong>public/</strong>: recursos estáticos (vacío en este repositorio).</li>
+        </ul>
+      </section>
+
+      <section class="card">
+        <h2>2. Páginas principales</h2>
+        <h3><code>app/page.tsx</code> — Dashboard</h3>
+        <p>Esta es la página inicial que muestra el panel general. Renderiza:</p>
+        <ul>
+          <li><code>PeriodSelector</code> para escoger el rango de fechas.</li>
+          <li>Cuatro KPI cards con clientes, entregas, utilidades y sales reps.</li>
+          <li><code>GraficaHistorico</code> con la evolución mensual.</li>
+          <li><code>GraficaEstatus</code> mostrando distribución de estados.</li>
+          <li><code>GraficaClientes</code> con top clientes por utilidad.</li>
+          <li><code>TablaTopClientes</code> y <code>TablaTopSalesRep</code> para listados de líderes.</li>
+        </ul>
+        <p>Trae métricas desde <code>panelApi</code> en <code>lib/api.ts</code>.</p>
+
+        <h3><code>app/operaciones/page.tsx</code> y <code>app/shipments/page.tsx</code></h3>
+        <p>Ambas páginas muestran:</p>
+        <ul>
+          <li>Un botón para abrir el <code>ModalShipment</code>.</li>
+          <li><code>TablaShipments</code> con envíos.</li>
+          <li><code>TablaClientes</code> y <code>TablaSalesRep</code>.</li>
+        </ul>
+      </section>
+
+      <section class="card">
+        <h2>3. Capa de API</h2>
+        <p><code>lib/api.ts</code> define la comunicación con el backend:</p>
+        <ul>
+          <li><code>get()</code> y <code>post()</code> envían peticiones con <code>fetch</code> y manejan errores.</li>
+          <li><code>panelApi</code> ofrece endpoints del dashboard: KPIs, series de tiempo, pie chart y top lists.</li>
+          <li><code>operacionesApi</code> ofrece endpoints de envíos, clientes, reps y modelos predictivos.</li>
+        </ul>
+        <p>También contiene los tipos de datos que espera el frontend, como <code>KpiResponse</code>, <code>PieItem</code>, <code>ShipmentRow</code> y más.</p>
+      </section>
+
+      <section class="card">
+        <h2>4. Datos de prueba y utilidades</h2>
+        <p><code>lib/mock-data.ts</code> contiene catálogos y datos estáticos:</p>
+        <ul>
+          <li><code>CLIENTES</code>, <code>USUARIOS</code>, <code>LUGARES</code>, <code>ESTATUS_LISTA</code>.</li>
+          <li>Datos para dashboard: <code>KPI_DATA</code>, <code>HISTORICO</code>, <code>TOP_CLIENTES</code>, <code>TOP_SALESREP</code>, <code>SHIPMENTS</code>.</li>
+          <li>Funciones de formato: <code>formatMXN</code> y <code>formatMXNCorto</code>.</li>
+          <li>Almacenamiento mutable de lugares con <code>getLugares</code>, <code>agregarLugar</code> y <code>resetLugares</code>.</li>
+        </ul>
+      </section>
+
+      <section class="card">
+        <h2>5. Hooks y estado</h2>
+        <p><code>hooks/use-filtros.ts</code> expone:</p>
+        <ul>
+          <li><code>filtros</code>: estado global de filtros.</li>
+          <li><code>actualizarFiltro(clave, valor)</code>: actualiza un filtro específico.</li>
+          <li><code>limpiarFiltros()</code>: elimina todos los filtros.</li>
+        </ul>
+      </section>
+
+      <section class="card">
+        <h2>6. Módulos de interfaz</h2>
+        <p>Los componentes en <code>components/ui/</code> son wrappers de Radix UI para controles reutilizables:</p>
+        <ul>
+          <li><code>button.tsx</code>, <code>input.tsx</code>, <code>select.tsx</code>, <code>card.tsx</code>, <code>dialog.tsx</code>, <code>popover.tsx</code>, <code>dropdown-menu.tsx</code>, <code>sheet.tsx</code>, <code>table.tsx</code>, <code>badge.tsx</code>, <code>separator.tsx</code>, <code>calendar.tsx</code>, <code>skeleton.tsx</code>.</li>
+          <li><code>lib/utils.ts</code> define <code>cn(...inputs)</code> para combinar clases CSS con <code>clsx</code> y <code>tailwind-merge</code>.</li>
+        </ul>
+      </section>
+
+      <section class="card">
+        <h2>7. Componentes más importantes</h2>
+        <h3><code>Sidebar</code> y <code>ThemeProvider</code></h3>
+        <ul>
+          <li><code>components/layout/sidebar.tsx</code> construye la barra lateral con navegación y cambio de tema.</li>
+          <li><code>components/layout/theme-provider.tsx</code> agrega el proveedor de tema.</li>
+          <li><code>components/theme-provider.tsx</code> añade un hotkey <code>d</code> para alternar tema.</li>
+        </ul>
+
+        <h3>Dashboard</h3>
+        <ul>
+          <li><code>components/dashboard/period-selector.tsx</code> maneja rangos de fecha y valores predeterminados.</li>
+          <li><code>components/dashboard/kpi-card.tsx</code> muestra tarjetas de KPI con variación y iconos.</li>
+          <li><code>components/dashboard/grafica-historico.tsx</code> muestra una línea con series de órdenes y utilidad.</li>
+          <li><code>components/dashboard/grafica-estatus.tsx</code> muestra un donut de estados.</li>
+          <li><code>components/dashboard/grafica-clientes.tsx</code> muestra un gráfico de barras de top clientes por utilidad.</li>
+          <li><code>components/dashboard/tabla-top-clientes.tsx</code> y <code>components/dashboard/tabla-top-salesrep.tsx</code> muestran listas de top rendimiento.</li>
+        </ul>
+
+        <h3>Envíos</h3>
+        <ul>
+          <li><code>components/shipments/tabla-shipments.tsx</code> lista envíos con búsqueda, filtrado y paginación.</li>
+          <li><code>components/shipments/tabla-clientes.tsx</code> y <code>components/shipments/tabla-salesrep.tsx</code> listan clientes y reps con filas expandibles.</li>
+          <li><code>components/shipments/modal-shipment.tsx</code> es el formulario más complejo, con carga de datos, creación de clientes, reps y lugares, predicción de carrier y generación de ticket PDF.</li>
+        </ul>
+      </section>
+
+      <section class="card">
+        <h2>8. Flujo de datos</h2>
+        <p>La aplicación sigue este flujo general:</p>
+        <ol>
+          <li>El layout base envuelve el contenido con tema y sidebar.</li>
+          <li>Las páginas usan hooks y componentes para construir la interfaz.</li>
+          <li>Los componentes de dashboard llaman a <code>panelApi</code> para recibir métricas y gráficos.</li>
+          <li>Los componentes de envíos llaman a <code>operacionesApi</code> para obtener listados, filtros y predicciones.</li>
+          <li>Los datos estáticos de <code>lib/mock-data.ts</code> se usan como catálogos y ejemplos cuando no hay backend.</li>
+        </ol>
+      </section>
+
+      <section class="card">
+        <h2>9. Notas importantes</h2>
+        <ul>
+          <li>El modal de envío es la parte más funcionalmente activa y usa muchos estados locales.</li>
+          <li>El proyecto está preparado para consumir un backend real, pero también funciona con datos de ejemplo en la carpeta <code>lib</code>.</li>
+          <li>El intercambio de tema se controla mediante <code>next-themes</code> y un atajo de teclado.</li>
+        </ul>
+      </section>
+    </main>
+
+    <aside>
+      <nav class="card">
+        <h2>Contenido</h2>
+        <ul>
+          <li><a href="#1-estructura-general">1. Estructura general</a></li>
+          <li><a href="#2-paginas-principales">2. Páginas principales</a></li>
+          <li><a href="#3-capa-de-api">3. Capa de API</a></li>
+          <li><a href="#4-datos-de-prueba-y-utilidades">4. Datos de prueba y utilidades</a></li>
+          <li><a href="#5-hooks-y-estado">5. Hooks y estado</a></li>
+          <li><a href="#6-modulos-de-interfaz">6. Módulos de interfaz</a></li>
+          <li><a href="#7-componentes-mas-importantes">7. Componentes más importantes</a></li>
+          <li><a href="#8-flujo-de-datos">8. Flujo de datos</a></li>
+          <li><a href="#9-notas-importantes">9. Notas importantes</a></li>
+        </ul>
+      </nav>
+    </aside>
+  </div>
+</body>
+</html>
